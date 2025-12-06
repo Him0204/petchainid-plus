@@ -264,3 +264,85 @@ body {
   justify-content: center;
   opacity: 0.8;
 }
+
+.register-card {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(75, 85, 99, 0.9);
+}
+
+.register-card h2 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+
+.register-form {
+  display: grid;
+  gap: 8px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-row label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.form-row input {
+  border-radius: 999px;
+  border: 1px solid rgba(75, 85, 99, 0.9);
+  padding: 8px 12px;
+  background: #020617;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.form-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.empty-text {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.pet-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pet-item {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(51, 65, 85, 0.9);
+}
+
+.pet-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.pet-species {
+  margin-left: 6px;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.pet-meta {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
