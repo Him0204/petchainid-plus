@@ -203,11 +203,33 @@ function OwnerDashboard({
 
   // ----- QR Code Functions -----
 
-  const startQRScanner = async () => {
+  const startScanning = async () => {
     try {
       setIsScanning(true);
       setLostSearchError("");
-      
+
+      // Check if HTTPS or localhost
+      const isSecureContext = window.isSecureContext;
+      if (!isSecureContext) {
+        setLostSearchError(
+          "Camera requires HTTPS. Please access via HTTPS URL or localhost."
+        );
+        setIsScanning(false);
+        return;
+      }
+
+      // Check camera permissions
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach(track => track.stop()); // Stop test stream
+      } catch (permError) {
+        setLostSearchError(
+          "Camera permission denied. Please enable camera access in your browser settings."
+        );
+        setIsScanning(false);
+        return;
+      }
+
       const html5QrCode = new Html5Qrcode("qr-reader");
       html5QrCodeRef.current = html5QrCode;
 
@@ -215,23 +237,22 @@ function OwnerDashboard({
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: { width: 250, height: 250 }
+          qrbox: { width: 250, height: 250 },
         },
         (decodedText) => {
-          // Successfully scanned
-          console.log("QR Code scanned:", decodedText);
           setLostSearchId(decodedText);
-          stopQRScanner();
-          // Auto-submit the search
-          handleLostPetSearchById(decodedText);
+          stopScanning();
+          handleLostPetSearch(new Event("submit"));
         },
         (errorMessage) => {
-          // Scanning errors (ignore these as they happen frequently)
+          // Ignore scanning errors (normal when no QR detected)
         }
       );
     } catch (err) {
-      console.error("Failed to start QR scanner:", err);
-      setLostSearchError("Failed to start camera. Please check permissions.");
+      console.error("QR Scanner error:", err);
+      setLostSearchError(
+        `Failed to start camera: ${err.message || "Unknown error"}. Make sure you're using HTTPS and have granted camera permissions.`
+      );
       setIsScanning(false);
     }
   };
