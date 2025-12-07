@@ -4,12 +4,15 @@ import "./App.css";
 import {
   PET_REGISTRY_ABI,
   PET_REGISTRY_ADDRESS,
+  MEDICAL_RECORDS_ABI,
+  MEDICAL_RECORDS_ADDRESS,
 } from "./contractConfig";
 
 function App() {
   const [web3, setWeb3] = useState(null);
   const [account, setAccount] = useState(null);
   const [contract, setContract] = useState(null);
+  const [medicalContract, setMedicalContract] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
   // Pet form state
@@ -17,6 +20,14 @@ function App() {
   const [petSpecies, setPetSpecies] = useState("");
   const [petBreed, setPetBreed] = useState("");
   const [petBirthYear, setPetBirthYear] = useState("");
+
+  // Vet form state
+  const [vetPetId, setVetPetId] = useState("");
+  const [recordTitle, setRecordTitle] = useState("");
+  const [recordDetails, setRecordDetails] = useState("");
+
+  // Records per pet (simple map: petId -> array of records)
+  const [recordsByPet, setRecordsByPet] = useState({});
 
   // My pets
   const [myPets, setMyPets] = useState([]);
@@ -50,6 +61,13 @@ function App() {
         PET_REGISTRY_ADDRESS
       );
       setContract(petRegistry);
+
+      // NEW: medical contract
+      const medical = new web3Instance.eth.Contract(
+        MEDICAL_RECORDS_ABI,
+        MEDICAL_RECORDS_ADDRESS
+      );
+      setMedicalContract(medical);
 
       // 👇 add this block for debugging:
       window._web3 = web3Instance;
@@ -178,6 +196,80 @@ function App() {
     }
   };
 
+  const handleAddMedicalRecord = async (e) => {
+    e.preventDefault();
+    if (!web3 || !account || !medicalContract) {
+      setStatusMessage("Connect wallet first.");
+      return;
+    }
+
+    if (!vetPetId || !recordTitle || !recordDetails) {
+      setStatusMessage("Please fill pet ID, title, and details.");
+      return;
+    }
+
+    try {
+      setStatusMessage("Sending transaction to add medical record...");
+
+      await medicalContract.methods
+        .addRecord(
+          Number(vetPetId),
+          recordTitle,
+          recordDetails
+        )
+        .send({ from: account });
+
+      setStatusMessage("Medical record added successfully.");
+      setVetPetId("");
+      setRecordTitle("");
+      setRecordDetails("");
+
+      // If this pet is in the owner list, reload its records
+      await loadRecordsForPet(Number(vetPetId));
+    } catch (err) {
+      console.error("addRecord error:", err);
+      setStatusMessage(
+        `Failed to add medical record: ${
+          err?.message || "transaction rejected or failed"
+        }`
+      );
+    }
+  };
+
+  const loadRecordsForPet = async (petId) => {
+    if (!medicalContract) {
+      setStatusMessage("Medical contract not ready yet.");
+      return;
+    }
+    try {
+      const ids = await medicalContract.methods
+        .getRecordIdsForPet(petId)
+        .call();
+
+      const recordPromises = ids.map(async (id) => {
+        const r = await medicalContract.methods.getRecord(id).call();
+        // r: [id, petId, vet, timestamp, title, details]
+        return {
+          id: r[0],
+          petId: r[1],
+          vet: r[2],
+          timestamp: Number(r[3]),
+          title: r[4],
+          details: r[5],
+        };
+      });
+
+      const recs = await Promise.all(recordPromises);
+      setRecordsByPet((prev) => ({
+        ...prev,
+        [petId]: recs,
+      }));
+    } catch (err) {
+      console.error("loadRecordsForPet error:", err);
+      setStatusMessage("Failed to load medical records.");
+    }
+  };
+
   return (
     <div className="app-root">
       {/* Top bar */}
@@ -274,6 +366,42 @@ function App() {
               </button>
             </form>
           </div>
+
+          <div className="register-card" style={{ marginTop: 16 }}>
+            <h2>Vet: Add Medical Record</h2>
+            <form onSubmit={handleAddMedicalRecord} className="register-form">
+              <div className="form-row">
+                <label>Pet ID</label>
+                <input
+                  type="number"
+                  value={vetPetId}
+                  onChange={(e) => setVetPetId(e.target.value)}
+                  placeholder="Enter existing pet ID"
+                />
+              </div>
+              <div className="form-row">
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={recordTitle}
+                  onChange={(e) => setRecordTitle(e.target.value)}
+                  placeholder="e.g. Vaccination, Checkup"
+                />
+              </div>
+              <div className="form-row">
+                <label>Details</label>
+                <input
+                  type="text"
+                  value={recordDetails}
+                  onChange={(e) => setRecordDetails(e.target.value)}
+                  placeholder="Short description of treatment"
+                />
+              </div>
+              <button className="secondary-btn" type="submit">
+                Add Record
+              </button>
+            </form>
+          </div>
         </section>
 
         {/* Right: info + My Pets list */}
@@ -322,6 +450,7 @@ function App() {
                       ID #{pet.id} · Born {pet.birthYear} ·{" "}
                       {pet.lostMode ? "Status: LOST" : "Status: Normal"}
                     </div>
+
                     <button
                       type="button"
                       className="lost-toggle-btn"
@@ -329,6 +458,30 @@ function App() {
                     >
                       {pet.lostMode ? "Mark as Found" : "Mark as Lost"}
                     </button>
+
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      style={{ marginTop: 6 }}
+                      onClick={() => loadRecordsForPet(pet.id)}
+                    >
+                      View Medical Records
+                    </button>
+
+                    {recordsByPet[pet.id] && recordsByPet[pet.id].length > 0 && (
+                      <ul className="record-list">
+                        {recordsByPet[pet.id].map((r) => (
+                          <li key={r.id} className="record-item">
+                            <div className="record-title">{r.title}</div>
+                            <div className="record-meta">
+                              By {r.vet.slice(0, 6)}...{r.vet.slice(-4)} ·{" "}
+                              {new Date(r.timestamp * 1000).toLocaleString()}
+                            </div>
+                            <div className="record-details">{r.details}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </li>
                 ))}
               </ul>
