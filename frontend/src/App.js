@@ -35,6 +35,12 @@ function App() {
       const selectedAccount = accounts[0];
       setAccount(selectedAccount);
 
+      const chainId = await window.ethereum.request({
+        method: "eth_chainId",
+      });
+      console.log("Connected chainId:", chainId);
+      setStatusMessage(`Wallet connected on chainId ${chainId}.`);
+
       const web3Instance = new Web3(window.ethereum);
       setWeb3(web3Instance);
 
@@ -45,7 +51,16 @@ function App() {
       );
       setContract(petRegistry);
 
-      setStatusMessage("Wallet connected and contract ready.");
+      // 👇 add this block for debugging:
+      window._web3 = web3Instance;
+      window._petRegistry = petRegistry;
+      window._account = selectedAccount;
+
+      setStatusMessage((prev) =>
+        prev
+          ? prev + " Contract initialized successfully."
+          : "Wallet and contract connected."
+      );
     } catch (err) {
       console.error(err);
       setStatusMessage("Failed to connect wallet.");
@@ -127,6 +142,39 @@ function App() {
     } catch (err) {
       console.error(err);
       setStatusMessage("Failed to load pets.");
+    }
+  };
+
+  // Toggle lost mode for a pet
+  const handleToggleLostMode = async (petId, currentLostMode) => {
+    if (!web3 || !account || !contract) {
+      setStatusMessage("Connect wallet first.");
+      return;
+    }
+
+    try {
+      const newValue = !currentLostMode;
+      setStatusMessage(
+        `Sending transaction to set lost mode to ${newValue ? "LOST" : "NORMAL"}...`
+      );
+
+      await contract.methods
+        .setLostMode(petId, newValue)
+        .send({ from: account });
+
+      setStatusMessage(
+        `Lost mode updated. Pet #${petId} is now ${newValue ? "LOST" : "NORMAL"}.`
+      );
+
+      // Reload pets to reflect new status
+      await loadMyPets();
+    } catch (err) {
+      console.error("setLostMode error:", err);
+      setStatusMessage(
+        `Failed to update lost mode: ${
+          err?.message || "transaction was rejected or failed"
+        }`
+      );
     }
   };
 
@@ -272,8 +320,15 @@ function App() {
                     </div>
                     <div className="pet-meta">
                       ID #{pet.id} · Born {pet.birthYear} ·{" "}
-                      {pet.lostMode ? "Lost" : "Normal"}
+                      {pet.lostMode ? "Status: LOST" : "Status: Normal"}
                     </div>
+                    <button
+                      type="button"
+                      className="lost-toggle-btn"
+                      onClick={() => handleToggleLostMode(pet.id, pet.lostMode)}
+                    >
+                      {pet.lostMode ? "Mark as Found" : "Mark as Lost"}
+                    </button>
                   </li>
                 ))}
               </ul>
