@@ -250,7 +250,10 @@ function OwnerDashboard({
     <main className="app-main">
       {/* Left column: hero + owner tools */}
       <section className="hero-card">
-        <h1>Owner Dashboard</h1>
+        <div className="section-header">
+          <span className="section-icon">👤</span>
+          <h2>Owner Dashboard</h2>
+        </div>
         <p>
           Manage your pets&apos; identities, mark them as lost, and view
           cross-clinic medical records.
@@ -265,7 +268,7 @@ function OwnerDashboard({
             setLostSearchError("");
           }}
         >
-          🐶 Lost a pet? <span>Find by Pet ID</span>
+          🔍 Lost a pet? <span>Find by Pet ID</span>
         </button>
 
         {statusMessage && (
@@ -282,16 +285,16 @@ function OwnerDashboard({
 
             <form className="lost-finder-form" onSubmit={handleLostPetSearch}>
               <div className="form-row">
-                <label>Pet ID</label>
+                <label>🔢 Pet ID</label>
                 <input
                   type="number"
                   value={lostSearchId}
                   onChange={(e) => setLostSearchId(e.target.value)}
-                  placeholder="e.g. 1"
+                  placeholder="Enter Pet ID (e.g. 1, 2, 3...)"
                 />
               </div>
-              <button className="secondary-btn" type="submit">
-                Search
+              <button className="primary-btn" type="submit" style={{ width: '100%' }}>
+                🔍 Search Pet
               </button>
             </form>
 
@@ -323,48 +326,58 @@ function OwnerDashboard({
           </div>
         )}
 
+        <div className="divider"></div>
+
         {/* Register Pet */}
         <div className="register-card">
-          <h2>Register a Pet</h2>
+          <div className="section-header">
+            <span className="section-icon">➕</span>
+            <h2>Register a Pet</h2>
+          </div>
           <form onSubmit={handleRegisterPet} className="register-form">
             <div className="form-row">
-              <label>Pet Name</label>
+              <label>🏷️ Pet Name *</label>
               <input
                 type="text"
                 value={petName}
                 onChange={(e) => setPetName(e.target.value)}
-                placeholder="e.g. Mochi"
+                placeholder="e.g. Mochi, Buddy, Luna"
+                required
               />
             </div>
             <div className="form-row">
-              <label>Species</label>
+              <label>🐾 Species *</label>
               <input
                 type="text"
                 value={petSpecies}
                 onChange={(e) => setPetSpecies(e.target.value)}
-                placeholder="e.g. Dog, Cat"
+                placeholder="e.g. Dog, Cat, Bird, Rabbit"
+                required
               />
             </div>
             <div className="form-row">
-              <label>Breed (optional)</label>
+              <label>🧬 Breed (optional)</label>
               <input
                 type="text"
                 value={petBreed}
                 onChange={(e) => setPetBreed(e.target.value)}
-                placeholder="e.g. Shiba Inu"
+                placeholder="e.g. Shiba Inu, Persian, Mixed"
               />
             </div>
             <div className="form-row">
-              <label>Birth Year</label>
+              <label>📅 Birth Year *</label>
               <input
                 type="number"
                 value={petBirthYear}
                 onChange={(e) => setPetBirthYear(e.target.value)}
                 placeholder="e.g. 2021"
+                min="1990"
+                max={new Date().getFullYear()}
+                required
               />
             </div>
             <button className="primary-btn" type="submit">
-              Register Pet
+              ✅ Register Pet
             </button>
           </form>
         </div>
@@ -373,7 +386,10 @@ function OwnerDashboard({
       {/* Right column: info + My Pets */}
       <section className="cards-column">
         <div className="info-card">
-          <h2>For Pet Owners</h2>
+          <div className="section-header">
+            <span className="section-icon">ℹ️</span>
+            <h2>For Pet Owners</h2>
+          </div>
           <p>
             Keep all your pets&apos; identities and medical histories in one
             tamper-proof place, accessible across clinics.
@@ -381,20 +397,26 @@ function OwnerDashboard({
         </div>
 
         <div className="info-card subtle">
-          <h2>My Pets (on-chain)</h2>
+          <div className="section-header" style={{ borderColor: 'var(--accent-soft-hover)' }}>
+            <span className="section-icon">🐾</span>
+            <h2>My Pets</h2>
+          </div>
           <button
-            className="secondary-btn"
+            className="primary-btn"
             type="button"
             onClick={loadMyPets}
+            style={{ width: '100%', marginBottom: '12px' }}
           >
-            Load My Pets
+            🔄 Refresh My Pets
           </button>
 
           {myPets.length === 0 && (
-            <p className="empty-text">
-              No pets loaded yet. Register a pet and click &quot;Load My
-              Pets&quot;.
-            </p>
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🐕‍🦺</div>
+              <p className="empty-text">
+                No pets loaded yet. Register a pet above and click &quot;Refresh My Pets&quot;.
+              </p>
+            </div>
           )}
 
           {myPets.length > 0 && (
@@ -450,17 +472,17 @@ function OwnerDashboard({
                       className="secondary-btn"
                       onClick={() => handleAddCoOwner(pet.id)}
                     >
-                      Add Co-Owner
+                      ➕ Add
                     </button>
                   </div>
 
                   <button
                     type="button"
-                    className="secondary-btn"
-                    style={{ marginTop: 6 }}
+                    className="ghost-btn"
+                    style={{ marginTop: 10, width: '100%' }}
                     onClick={() => loadRecordsForPet(pet.id)}
                   >
-                    View Medical Records
+                    📋 <span>View Medical Records</span>
                   </button>
 
                   {recordsByPet[pet.id] &&
@@ -468,15 +490,15 @@ function OwnerDashboard({
                       <ul className="record-list">
                         {recordsByPet[pet.id].map((r) => (
                           <li key={r.id} className="record-item">
-                            <div className="record-title">{r.title}</div>
+                            <div className="record-title">📄 {r.title}</div>
                             <div className="record-meta">
-                              By {formatAddress(r.vet)} ·{" "}
+                              🩺 By {formatAddress(r.vet)} · 📅{" "}
                               {new Date(
                                 r.timestamp * 1000
-                              ).toLocaleString()}
+                              ).toLocaleDateString()}
                             </div>
                             <div className="record-details">
-                              {r.details}
+                              💬 {r.details}
                             </div>
                           </li>
                         ))}

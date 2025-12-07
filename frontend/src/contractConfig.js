@@ -3,6 +3,24 @@
 // 1. Copy the ABI array from backend/artifacts/.../PetRegistry.json
 export const PET_REGISTRY_ABI = [
 	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "petId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "addCoOwner",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
 		"anonymous": false,
 		"inputs": [
 			{
@@ -87,17 +105,69 @@ export const PET_REGISTRY_ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "species",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "breed",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "birthYear",
+				"type": "uint256"
+			}
+		],
+		"name": "registerPet",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "uint256",
 				"name": "petId",
 				"type": "uint256"
 			},
 			{
 				"internalType": "address",
-				"name": "newOwner",
+				"name": "ownerToRemove",
 				"type": "address"
 			}
 		],
-		"name": "addCoOwner",
+		"name": "removeCoOwner",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "petId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "lostMode",
+				"type": "bool"
+			}
+		],
+		"name": "setLostMode",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -217,81 +287,11 @@ export const PET_REGISTRY_ABI = [
 		],
 		"stateMutability": "view",
 		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "name",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "species",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "breed",
-				"type": "string"
-			},
-			{
-				"internalType": "uint256",
-				"name": "birthYear",
-				"type": "uint256"
-			}
-		],
-		"name": "registerPet",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "petId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "ownerToRemove",
-				"type": "address"
-			}
-		],
-		"name": "removeCoOwner",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "petId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "lostMode",
-				"type": "bool"
-			}
-		],
-		"name": "setLostMode",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
 	}
 ];
 
 // 2. Paste the address printed by `node scripts/deploy.js`
-export const PET_REGISTRY_ADDRESS = "0x0e71001cE168cCCd69527c6D24aCe9B2f96ABd30";
+export const PET_REGISTRY_ADDRESS = "0x7d7e917b3D5a44f4CEdd6E2969208D43274A993f";
 
 export const MEDICAL_RECORDS_ABI = [
 	{
@@ -506,4 +506,4 @@ export const MEDICAL_RECORDS_ABI = [
 	}
 ];
 
-export const MEDICAL_RECORDS_ADDRESS = "0xb59BB42a957B1EF94f8d6b423a649D542D540a6a";
+export const MEDICAL_RECORDS_ADDRESS = "0xE551657117C10Ce38f85b0101714499Fa14e5Df1";

@@ -16,14 +16,14 @@ import AdminPanel from "./components/AdminPanel";
 // Network configuration
 // For Sepolia testnet: 0xaa36a7 (11155111 in decimal)
 // For local Hardhat: 0x7a69 (31337 in decimal)
-const NETWORK_CHAIN_ID = "0x7a69"; // Change to "0xaa36a7" for Sepolia
+const NETWORK_CHAIN_ID = "0xaa36a7"; // Change to "0xaa36a7" for Sepolia
 
 function App() {
   const [account, setAccount] = useState(null);
   const [petContract, setPetContract] = useState(null);
   const [medicalContract, setMedicalContract] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
-  const [role, setRole] = useState(null); // "owner" | "vet" | null
+  const [role, setRole] = useState(null); // "owner" | "vet" | "admin" | null
   const [isVetApproved, setIsVetApproved] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -82,17 +82,22 @@ function App() {
       let adminAddr = null;
       try {
         adminAddr = await medical.methods.admin().call();
+        console.log("Admin address from contract:", adminAddr);
+        console.log("Current account:", selected);
+        console.log("Is admin?", adminAddr && adminAddr.toLowerCase() === selected.toLowerCase());
       } catch (e) {
         console.error("admin check error:", e);
       }
-      setIsAdmin(
-        adminAddr && adminAddr.toLowerCase() === selected.toLowerCase()
-      );
+      
+      const isAdminCheck = adminAddr && adminAddr.toLowerCase() === selected.toLowerCase();
+      setIsAdmin(isAdminCheck);
+
+      console.log("Setting isAdmin to:", isAdminCheck);
 
       setStatusMessage(
         `Wallet and contracts connected successfully. ${
           vetApproved ? "(Approved Vet) " : ""
-        }${adminAddr && adminAddr.toLowerCase() === selected.toLowerCase() ? "(Admin) " : ""}`
+        }${isAdminCheck ? "(Admin) " : ""}`
       );
     } catch (err) {
       console.error("Wallet connect error:", err);
@@ -117,15 +122,24 @@ function App() {
               type="button"
               onClick={() => setRole("owner")}
             >
-              Owner
+              👤 Owner
             </button>
             <button
               className={`secondary-btn ${role === "vet" ? "active-role" : ""}`}
               type="button"
               onClick={() => setRole("vet")}
             >
-              Vet
+              ⚕️ Vet
             </button>
+            {isAdmin && (
+              <button
+                className={`secondary-btn ${role === "admin" ? "active-role" : ""}`}
+                type="button"
+                onClick={() => setRole("admin")}
+              >
+                👑 Admin
+              </button>
+            )}
           </div>
 
           <button
@@ -136,15 +150,51 @@ function App() {
             {account ? (
               <>
                 <span className="wallet-dot" /> {formatAddress(account)}
+                {isVetApproved && <span style={{ marginLeft: '6px', fontSize: '0.9rem' }}>⚕️</span>}
+                {isAdmin && <span style={{ marginLeft: '6px', fontSize: '0.9rem' }}>👑</span>}
               </>
             ) : (
-              "Connect Wallet"
+              "🔌 Connect Wallet"
             )}
           </button>
         </div>
       </header>
 
-      {role === "vet" ? (
+      {role === "admin" ? (
+        <main className="app-main">
+          <section className="hero-card">
+            <div className="section-header">
+              <span className="section-icon">👑</span>
+              <h2>Admin Dashboard</h2>
+            </div>
+            <p>
+              Manage veterinarian approvals and oversee the PetChainID+ system.
+            </p>
+            {statusMessage && (
+              <p className="status-message">{statusMessage}</p>
+            )}
+          </section>
+          <section className="cards-column">
+            <AdminPanel
+              isAdmin={isAdmin}
+              medicalContract={medicalContract}
+              account={account}
+              setStatusMessage={setStatusMessage}
+            />
+            
+            <div className="info-card">
+              <div className="section-header">
+                <span className="section-icon">ℹ️</span>
+                <h2>Admin Privileges</h2>
+              </div>
+              <p>
+                As an admin, you can approve or revoke veterinarian access to the medical records system.
+                Only approved vets can add medical records for pets.
+              </p>
+            </div>
+          </section>
+        </main>
+      ) : role === "vet" ? (
         <VetDashboard
           account={account}
           medicalContract={medicalContract}
@@ -161,24 +211,12 @@ function App() {
         />
       )}
 
-      {/* Admin Panel always lives on the right column area;
-          OwnerDashboard renders main content; we just append AdminPanel
-          at the bottom of the page */}
       <footer className="app-footer">
         <span>
-          © {new Date().getFullYear()} PetChainID+ · Built with React &amp; Solidity
+          © {new Date().getFullYear()} PetChainID+ · Built with React &amp; Solidity · 
+          {account && <span style={{ marginLeft: '8px' }}>Connected: {formatAddress(account)}</span>}
         </span>
       </footer>
-
-      {/* You can render AdminPanel above footer or integrate into cards-column. */}
-      <div className="admin-panel-wrapper">
-        <AdminPanel
-          isAdmin={isAdmin}
-          medicalContract={medicalContract}
-          account={account}
-          setStatusMessage={setStatusMessage}
-        />
-      </div>
     </div>
   );
 }
