@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Html5Qrcode } from "html5-qrcode";
+import Web3 from "web3";
+import { PET_REGISTRY_ABI, PET_REGISTRY_ADDRESS } from "../contractConfig";
 
 function OwnerDashboard({
   account,
@@ -269,10 +271,6 @@ function OwnerDashboard({
   };
 
   const handleLostPetSearchById = async (petId) => {
-    if (!petContract) {
-      setStatusMessage("Connect wallet first.");
-      return;
-    }
     if (!petId) {
       setLostSearchError("Please enter a Pet ID.");
       setLostSearchResult(null);
@@ -283,6 +281,38 @@ function OwnerDashboard({
       setLostSearchError("");
       setLostSearchResult(null);
       setStatusMessage("Looking up pet on-chain...");
+
+      // Allow searching without wallet - create read-only Web3 instance
+      if (!petContract) {
+        const provider = window.ethereum || 'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161';
+        const web3Instance = new Web3(provider);
+        const tempContract = new web3Instance.eth.Contract(
+          PET_REGISTRY_ABI,
+          PET_REGISTRY_ADDRESS
+        );
+        const pet = await tempContract.methods.getPet(Number(petId)).call();
+        
+        const result = {
+          id: pet[0],
+          name: pet[1],
+          species: pet[2],
+          breed: pet[3],
+          birthYear: pet[4],
+          owner: pet[5],
+          lostMode: pet[6],
+        };
+
+        if (!result.lostMode) {
+          setLostSearchError(
+            "This pet is not marked as LOST (Lost Pet Mode not enabled)."
+          );
+          setLostSearchResult(null);
+        } else {
+          setLostSearchResult(result);
+        }
+        setStatusMessage("");
+        return;
+      }
 
       const pet = await petContract.methods
         .getPet(Number(petId))
