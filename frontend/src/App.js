@@ -13,8 +13,12 @@ import OwnerDashboard from "./components/OwnerDashboard";
 import VetDashboard from "./components/VetDashboard";
 import AdminPanel from "./components/AdminPanel";
 
+// Network configuration
+// For Sepolia testnet: 0xaa36a7 (11155111 in decimal)
+// For local Hardhat: 0x7a69 (31337 in decimal)
+const NETWORK_CHAIN_ID = "0x7a69"; // Change to "0xaa36a7" for Sepolia
+
 function App() {
-  const [web3, setWeb3] = useState(null);
   const [account, setAccount] = useState(null);
   const [petContract, setPetContract] = useState(null);
   const [medicalContract, setMedicalContract] = useState(null);
@@ -37,13 +41,21 @@ function App() {
       setAccount(selected);
 
       const web3Instance = new Web3(window.ethereum);
-      setWeb3(web3Instance);
 
       const chainId = await window.ethereum.request({
         method: "eth_chainId",
       });
       console.log("Connected chainId:", chainId);
-      setStatusMessage(`Wallet connected on chainId ${chainId}.`);
+
+      // Check if on correct network
+      if (chainId !== NETWORK_CHAIN_ID) {
+        setStatusMessage(
+          `Wrong network. Please switch MetaMask to the correct network (chainId ${NETWORK_CHAIN_ID}).`
+        );
+        setPetContract(null);
+        setMedicalContract(null);
+        return;
+      }
 
       const pet = new web3Instance.eth.Contract(
         PET_REGISTRY_ABI,
@@ -57,22 +69,31 @@ function App() {
       );
       setMedicalContract(medical);
 
+      // Check vet status
+      let vetApproved = false;
       try {
-        const approved = await medical.methods.isVet(selected).call();
-        setIsVetApproved(approved);
-      } catch (err) {
-        console.error("isVet check error:", err);
+        vetApproved = await medical.methods.isVet(selected).call();
+      } catch (e) {
+        console.error("isVet check error:", e);
       }
+      setIsVetApproved(vetApproved);
 
+      // Check admin status
+      let adminAddr = null;
       try {
-        const adminAddr = await medical.methods.admin().call();
-        setIsAdmin(
-          adminAddr.toLowerCase() === selected.toLowerCase()
-        );
-      } catch (err) {
-        console.error("admin check error:", err);
-        setIsAdmin(false);
+        adminAddr = await medical.methods.admin().call();
+      } catch (e) {
+        console.error("admin check error:", e);
       }
+      setIsAdmin(
+        adminAddr && adminAddr.toLowerCase() === selected.toLowerCase()
+      );
+
+      setStatusMessage(
+        `Wallet and contracts connected successfully. ${
+          vetApproved ? "(Approved Vet) " : ""
+        }${adminAddr && adminAddr.toLowerCase() === selected.toLowerCase() ? "(Admin) " : ""}`
+      );
     } catch (err) {
       console.error("Wallet connect error:", err);
       setStatusMessage("Failed to connect wallet.");
