@@ -197,6 +197,10 @@ body {
   background: rgba(15, 23, 42, 0.7);
 }
 
+.active-role {
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.6);
+}
+
 .ghost-btn {
   margin-top: 8px;
   align-self: flex-start;
@@ -397,4 +401,118 @@ body {
 .record-details {
   font-size: 0.8rem;
   margin-top: 2px;
+}
+
+.lost-finder-card {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px dashed rgba(148, 163, 184, 0.7);
+}
+
+.lost-finder-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.lost-finder-text {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.lost-finder-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lost-error-text {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #fecaca;
+}
+
+.lost-result-card {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(248, 250, 252, 0.12);
+}
+
+.lost-result-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.lost-result-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.lost-result-status {
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
+.lost-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(248, 113, 113, 0.2);
+  border: 1px solid rgba(248, 113, 113, 0.7);
+  color: #fecaca;
+  font-size: 0.75rem;
+}
+
+.lost-result-contact {
+  margin-top: 6px;
+  font-size: 0.8rem;
+}
+
+.lost-result-contact code {
+  font-size: 0.8rem;
+}
+
+/* Co-owner styles */
+.owners-line {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.owner-tag {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+.coowner-row {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.coowner-input {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid rgba(75, 85, 99, 0.9);
+  padding: 6px 10px;
+  background: #020617;
+  color: var(--text-main);
+  font-size: 0.8rem;
+}
+
+.coowner-input:focus {
+  outline: none;
+  border-color: var(--accent);
 }

@@ -3,6 +3,62 @@
 // 1. Copy the ABI array from backend/artifacts/.../PetRegistry.json
 export const PET_REGISTRY_ABI = [
 	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "petId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "addCoOwner",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "petId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "CoOwnerAdded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "petId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "removedOwner",
+				"type": "address"
+			}
+		],
+		"name": "CoOwnerRemoved",
+		"type": "event"
+	},
+	{
 		"anonymous": false,
 		"inputs": [
 			{
@@ -88,6 +144,24 @@ export const PET_REGISTRY_ABI = [
 				"type": "uint256"
 			},
 			{
+				"internalType": "address",
+				"name": "ownerToRemove",
+				"type": "address"
+			}
+		],
+		"name": "removeCoOwner",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "petId",
+				"type": "uint256"
+			},
+			{
 				"internalType": "bool",
 				"name": "lostMode",
 				"type": "bool"
@@ -150,6 +224,30 @@ export const PET_REGISTRY_ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "uint256",
+				"name": "petId",
+				"type": "uint256"
+			}
+		],
+		"name": "getPetOwners",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "primaryOwner",
+				"type": "address"
+			},
+			{
+				"internalType": "address[]",
+				"name": "coOwners",
+				"type": "address[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "address",
 				"name": "ownerAddr",
 				"type": "address"
@@ -169,9 +267,38 @@ export const PET_REGISTRY_ABI = [
 ];
 
 // 2. Paste the address printed by `node scripts/deploy.js`
-export const PET_REGISTRY_ADDRESS = "0x4FC9C88C4FA89743e9d3Ede3AE35018cf2E53044";
+export const PET_REGISTRY_ADDRESS = "0x76B234947216916Ef609DdD3B8372D11e5B1D6e8";
 
 export const MEDICAL_RECORDS_ABI = [
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "petId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "title",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "details",
+				"type": "string"
+			}
+		],
+		"name": "addRecord",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
 	{
 		"inputs": [
 			{
@@ -211,30 +338,51 @@ export const MEDICAL_RECORDS_ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "petId",
-				"type": "uint256"
+				"internalType": "address",
+				"name": "vet",
+				"type": "address"
 			},
 			{
-				"internalType": "string",
-				"name": "title",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "details",
-				"type": "string"
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
 			}
 		],
-		"name": "addRecord",
+		"name": "setVet",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "vet",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "VetApprovalChanged",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "admin",
 		"outputs": [
 			{
-				"internalType": "uint256",
+				"internalType": "address",
 				"name": "",
-				"type": "uint256"
+				"type": "address"
 			}
 		],
-		"stateMutability": "nonpayable",
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -301,6 +449,25 @@ export const MEDICAL_RECORDS_ABI = [
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "isVet",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [],
 		"name": "petRegistry",
 		"outputs": [
@@ -315,4 +482,4 @@ export const MEDICAL_RECORDS_ABI = [
 	}
 ];
 
-export const MEDICAL_RECORDS_ADDRESS = "0xeea9A35E146923F224CA7ef65801b6C4805Ef5d6";
+export const MEDICAL_RECORDS_ADDRESS = "0xEE9788b274D6591DB35a7A2608de4b48341fF539";

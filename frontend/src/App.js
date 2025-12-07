@@ -29,6 +29,21 @@ function App() {
   // Records per pet (simple map: petId -> array of records)
   const [recordsByPet, setRecordsByPet] = useState({});
 
+  // Lost pet finder state
+  const [showLostFinder, setShowLostFinder] = useState(false);
+  const [lostSearchId, setLostSearchId] = useState("");
+  const [lostSearchResult, setLostSearchResult] = useState(null);
+  const [lostSearchError, setLostSearchError] = useState("");
+
+  // Vet status
+  const [isVetApproved, setIsVetApproved] = useState(false);
+
+  // Role state
+  const [role, setRole] = useState(null); // "owner" | "vet" | null
+
+  // Co-owner state
+  const [coOwnerAddressInput, setCoOwnerAddressInput] = useState({});
+
   // My pets
   const [myPets, setMyPets] = useState([]);
 
@@ -68,6 +83,14 @@ function App() {
         MEDICAL_RECORDS_ADDRESS
       );
       setMedicalContract(medical);
+
+      // Check vet status for this account
+      try {
+        const approved = await medical.methods.isVet(selectedAccount).call();
+        setIsVetApproved(approved);
+      } catch (err) {
+        console.error("isVet check error:", err);
+      }
 
       // 👇 add this block for debugging:
       window._web3 = web3Instance;
@@ -142,15 +165,27 @@ function App() {
 
       const petPromises = ids.map(async (id) => {
         const pet = await contract.methods.getPet(id).call();
-        // pet is [id, name, species, breed, birthYear, owner, lostMode]
+        // getPet: [id, name, species, breed, birthYear, primaryOwner, lostMode]
+        let owners = [];
+        try {
+          const ownersInfo = await contract.methods.getPetOwners(id).call();
+          const primaryOwner = ownersInfo[0];
+          const coOwners = ownersInfo[1];
+          owners = [primaryOwner, ...coOwners];
+        } catch (e) {
+          // if getPetOwners not available (old ABI), just use primary owner
+          owners = [pet[5]];
+        }
+
         return {
           id: pet[0],
           name: pet[1],
           species: pet[2],
           breed: pet[3],
           birthYear: pet[4],
-          owner: pet[5],
+          primaryOwner: pet[5],
           lostMode: pet[6],
+          owners,
         };
       });
 
@@ -158,7 +193,7 @@ function App() {
       setMyPets(petList);
       setStatusMessage(`Loaded ${petList.length} pets.`);
     } catch (err) {
-      console.error(err);
+      console.error("loadMyPets error:", err);
       setStatusMessage("Failed to load pets.");
     }
   };
@@ -196,10 +231,47 @@ function App() {
     }
   };
 
+  const handleAddCoOwner = async (petId) => {
+    if (!web3 || !account || !contract) {
+      setStatusMessage("Connect wallet first.");
+      return;
+    }
+
+    const addr = coOwnerAddressInput[petId]?.trim();
+    if (!addr) {
+      setStatusMessage("Enter a co-owner address first.");
+      return;
+    }
+
+    try {
+      setStatusMessage("Sending transaction to add co-owner...");
+      await contract.methods
+        .addCoOwner(petId, addr)
+        .send({ from: account });
+
+      setStatusMessage("Co-owner added successfully.");
+      setCoOwnerAddressInput((prev) => ({ ...prev, [petId]: "" }));
+
+      await loadMyPets();
+    } catch (err) {
+      console.error("addCoOwner error:", err);
+      setStatusMessage(
+        `Failed to add co-owner: ${
+          err?.message || "transaction rejected or failed"
+        }`
+      );
+    }
+  };
+
   const handleAddMedicalRecord = async (e) => {
     e.preventDefault();
     if (!web3 || !account || !medicalContract) {
       setStatusMessage("Connect wallet first.");
+      return;
+    }
+
+    if (!isVetApproved) {
+      setStatusMessage("This wallet is not approved as a vet.");
       return;
     }
 
@@ -270,6 +342,54 @@ function App() {
     }
   };
 
+  const handleLostPetSearch = async (e) => {
+    e.preventDefault();
+
+    if (!contract) {
+      setStatusMessage("Connect wallet first so we can read the chain.");
+      return;
+    }
+
+    if (!lostSearchId) {
+      setLostSearchError("Please enter a Pet ID.");
+      setLostSearchResult(null);
+      return;
+    }
+
+    try {
+      setLostSearchError("");
+      setStatusMessage("Looking up pet on-chain...");
+      setLostSearchResult(null);
+
+      const pet = await contract.methods.getPet(Number(lostSearchId)).call();
+      // pet: [id, name, species, breed, birthYear, owner, lostMode]
+      const result = {
+        id: pet[0],
+        name: pet[1],
+        species: pet[2],
+        breed: pet[3],
+        birthYear: pet[4],
+        owner: pet[5],
+        lostMode: pet[6],
+      };
+
+      if (!result.lostMode) {
+        setLostSearchError(
+          "This pet is not marked as LOST. (Owner hasn't enabled Lost Pet Mode.)"
+        );
+        setLostSearchResult(null);
+      } else {
+        setLostSearchResult(result);
+      }
+
+      setStatusMessage("");
+    } catch (err) {
+      console.error("Lost pet search error:", err);
+      setLostSearchError("No pet found with that ID or contract call failed.");
+      setLostSearchResult(null);
+    }
+  };
+
   return (
     <div className="app-root">
       {/* Top bar */}
@@ -305,103 +425,190 @@ function App() {
           </p>
 
           <div className="hero-actions">
-            <button className="primary-btn" type="button">
+            <button
+              className={`primary-btn ${role === "owner" ? "active-role" : ""}`}
+              type="button"
+              onClick={() => setRole("owner")}
+            >
               I&apos;m a Pet Owner
             </button>
-            <button className="secondary-btn" type="button">
+            <button
+              className={`secondary-btn ${role === "vet" ? "active-role" : ""}`}
+              type="button"
+              onClick={() => setRole("vet")}
+            >
               I&apos;m a Veterinarian
             </button>
           </div>
 
-          <button className="ghost-btn" type="button">
-            🐶 Lost a pet? <span>Find by Pet ID</span>
-          </button>
+          {(role === "owner" || role === null) && (
+            <>
+              <button
+                className="ghost-btn"
+                type="button"
+                onClick={() => {
+                  setShowLostFinder((prev) => !prev);
+                  setLostSearchResult(null);
+                  setLostSearchError("");
+                }}
+              >
+                🐶 Lost a pet? <span>Find by Pet ID</span>
+              </button>
 
-          {statusMessage && (
-            <p className="status-message">{statusMessage}</p>
+              {statusMessage && (
+                <p className="status-message">{statusMessage}</p>
+              )}
+
+              {showLostFinder && (
+                <div className="lost-finder-card">
+                  <h2>Lost Pet Finder</h2>
+                  <p className="lost-finder-text">
+                    Enter a Pet ID to see if it&apos;s marked as LOST. If so, you&apos;ll see basic
+                    info and the owner&apos;s wallet address as contact.
+                  </p>
+
+                  <form className="lost-finder-form" onSubmit={handleLostPetSearch}>
+                    <div className="form-row">
+                      <label>Pet ID</label>
+                      <input
+                        type="number"
+                        value={lostSearchId}
+                        onChange={(e) => setLostSearchId(e.target.value)}
+                        placeholder="e.g. 1"
+                      />
+                    </div>
+                    <button className="secondary-btn" type="submit">
+                      Search
+                    </button>
+                  </form>
+
+                  {lostSearchError && (
+                    <p className="lost-error-text">
+                      {lostSearchError}
+                    </p>
+                  )}
+
+                  {lostSearchResult && (
+                    <div className="lost-result-card">
+                      <div className="lost-result-title">
+                        {lostSearchResult.name}{" "}
+                        <span className="pet-species">
+                          {lostSearchResult.species}
+                        </span>
+                      </div>
+                      <div className="lost-result-meta">
+                        Pet ID #{lostSearchResult.id} · Born {lostSearchResult.birthYear}
+                      </div>
+                      <div className="lost-result-status">
+                        Status: <span className="lost-badge">LOST</span>
+                      </div>
+                      <div className="lost-result-contact">
+                        Contact owner wallet:{" "}
+                        <code>
+                          {lostSearchResult.owner.slice(0, 6)}...
+                          {lostSearchResult.owner.slice(-4)}
+                        </code>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Register pet form */}
+              <div className="register-card">
+                <h2>Register a Pet</h2>
+                <form onSubmit={handleRegisterPet} className="register-form">
+                  <div className="form-row">
+                    <label>Pet Name</label>
+                    <input
+                      type="text"
+                      value={petName}
+                      onChange={(e) => setPetName(e.target.value)}
+                      placeholder="e.g. Mochi"
+                    />
+                  </div>
+                  <div className="form-row">
+                    <label>Species</label>
+                    <input
+                      type="text"
+                      value={petSpecies}
+                      onChange={(e) => setPetSpecies(e.target.value)}
+                      placeholder="e.g. Dog, Cat"
+                    />
+                  </div>
+                  <div className="form-row">
+                    <label>Breed (optional)</label>
+                    <input
+                      type="text"
+                      value={petBreed}
+                      onChange={(e) => setPetBreed(e.target.value)}
+                      placeholder="e.g. Shiba Inu"
+                    />
+                  </div>
+                  <div className="form-row">
+                    <label>Birth Year</label>
+                    <input
+                      type="number"
+                      value={petBirthYear}
+                      onChange={(e) => setPetBirthYear(e.target.value)}
+                      placeholder="e.g. 2021"
+                    />
+                  </div>
+                  <button className="primary-btn" type="submit">
+                    Register Pet
+                  </button>
+                </form>
+              </div>
+            </>
           )}
 
-          {/* Register pet form */}
-          <div className="register-card">
-            <h2>Register a Pet</h2>
-            <form onSubmit={handleRegisterPet} className="register-form">
-              <div className="form-row">
-                <label>Pet Name</label>
-                <input
-                  type="text"
-                  value={petName}
-                  onChange={(e) => setPetName(e.target.value)}
-                  placeholder="e.g. Mochi"
-                />
-              </div>
-              <div className="form-row">
-                <label>Species</label>
-                <input
-                  type="text"
-                  value={petSpecies}
-                  onChange={(e) => setPetSpecies(e.target.value)}
-                  placeholder="e.g. Dog, Cat"
-                />
-              </div>
-              <div className="form-row">
-                <label>Breed (optional)</label>
-                <input
-                  type="text"
-                  value={petBreed}
-                  onChange={(e) => setPetBreed(e.target.value)}
-                  placeholder="e.g. Shiba Inu"
-                />
-              </div>
-              <div className="form-row">
-                <label>Birth Year</label>
-                <input
-                  type="number"
-                  value={petBirthYear}
-                  onChange={(e) => setPetBirthYear(e.target.value)}
-                  placeholder="e.g. 2021"
-                />
-              </div>
-              <button className="primary-btn" type="submit">
-                Register Pet
-              </button>
-            </form>
-          </div>
-
-          <div className="register-card" style={{ marginTop: 16 }}>
+          {role === "vet" && (
+            <div className="register-card" style={{ marginTop: 16 }}>
             <h2>Vet: Add Medical Record</h2>
-            <form onSubmit={handleAddMedicalRecord} className="register-form">
-              <div className="form-row">
-                <label>Pet ID</label>
-                <input
-                  type="number"
-                  value={vetPetId}
-                  onChange={(e) => setVetPetId(e.target.value)}
-                  placeholder="Enter existing pet ID"
-                />
-              </div>
-              <div className="form-row">
-                <label>Title</label>
-                <input
-                  type="text"
-                  value={recordTitle}
-                  onChange={(e) => setRecordTitle(e.target.value)}
-                  placeholder="e.g. Vaccination, Checkup"
-                />
-              </div>
-              <div className="form-row">
-                <label>Details</label>
-                <input
-                  type="text"
-                  value={recordDetails}
-                  onChange={(e) => setRecordDetails(e.target.value)}
-                  placeholder="Short description of treatment"
-                />
-              </div>
-              <button className="secondary-btn" type="submit">
-                Add Record
-              </button>
-            </form>
-          </div>
+
+            {!isVetApproved && (
+              <p className="lost-finder-text">
+                This wallet is <strong>not an approved vet</strong>. Ask the system admin to
+                approve your address before adding records.
+              </p>
+            )}
+
+            {isVetApproved && (
+              <form onSubmit={handleAddMedicalRecord} className="register-form">
+                <div className="form-row">
+                  <label>Pet ID</label>
+                  <input
+                    type="number"
+                    value={vetPetId}
+                    onChange={(e) => setVetPetId(e.target.value)}
+                    placeholder="Enter existing pet ID"
+                  />
+                </div>
+                <div className="form-row">
+                  <label>Title</label>
+                  <input
+                    type="text"
+                    value={recordTitle}
+                    onChange={(e) => setRecordTitle(e.target.value)}
+                    placeholder="e.g. Vaccination, Checkup"
+                  />
+                </div>
+                <div className="form-row">
+                  <label>Details</label>
+                  <input
+                    type="text"
+                    value={recordDetails}
+                    onChange={(e) => setRecordDetails(e.target.value)}
+                    placeholder="Short description of treatment"
+                  />
+                </div>
+                <button className="secondary-btn" type="submit">
+                  Add Record
+                </button>
+              </form>
+            )}
+            </div>
+          )}
         </section>
 
         {/* Right: info + My Pets list */}
@@ -422,71 +629,119 @@ function App() {
             </p>
           </div>
 
-          <div className="info-card subtle">
-            <h2>My Pets (on-chain)</h2>
-            <button
-              className="secondary-btn"
-              type="button"
-              onClick={loadMyPets}
-            >
-              Load My Pets
-            </button>
+          {(role === "owner" || role === null) && (
+            <div className="info-card subtle">
+              <h2>My Pets (on-chain)</h2>
+              <button
+                className="secondary-btn"
+                type="button"
+                onClick={loadMyPets}
+              >
+                Load My Pets
+              </button>
 
-            {myPets.length === 0 && (
+              {myPets.length === 0 && (
+                <p className="empty-text">
+                  No pets loaded yet. Register a pet and click &quot;Load My
+                  Pets&quot;.
+                </p>
+              )}
+
+              {myPets.length > 0 && (
+                <ul className="pet-list">
+                  {myPets.map((pet) => (
+                    <li key={pet.id} className="pet-item">
+                      <div className="pet-name">
+                        {pet.name} <span className="pet-species">{pet.species}</span>
+                      </div>
+                      <div className="pet-meta">
+                        ID #{pet.id} · Born {pet.birthYear} ·{" "}
+                        {pet.lostMode ? "Status: LOST" : "Status: Normal"}
+                      </div>
+
+                      {/* Owners list */}
+                      {pet.owners && pet.owners.length > 0 && (
+                        <div className="owners-line">
+                          Owners:{" "}
+                          {pet.owners.map((o, idx) => (
+                            <span key={o} className="owner-tag">
+                              {idx === 0 ? "Primary" : "Co-owner"}:{" "}
+                              {o.slice(0, 6)}...{o.slice(-4)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        className="lost-toggle-btn"
+                        onClick={() => handleToggleLostMode(pet.id, pet.lostMode)}
+                      >
+                        {pet.lostMode ? "Mark as Found" : "Mark as Lost"}
+                      </button>
+
+                      {/* Add co-owner input + button (owner-only feature) */}
+                      <div className="coowner-row">
+                        <input
+                          type="text"
+                          className="coowner-input"
+                          placeholder="Add co-owner address (0x...)"
+                          value={coOwnerAddressInput[pet.id] || ""}
+                          onChange={(e) =>
+                            setCoOwnerAddressInput((prev) => ({
+                              ...prev,
+                              [pet.id]: e.target.value,
+                            }))
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() => handleAddCoOwner(pet.id)}
+                        >
+                          Add Co-Owner
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        style={{ marginTop: 6 }}
+                        onClick={() => loadRecordsForPet(pet.id)}
+                      >
+                        View Medical Records
+                      </button>
+
+                      {recordsByPet[pet.id] && recordsByPet[pet.id].length > 0 && (
+                        <ul className="record-list">
+                          {recordsByPet[pet.id].map((r) => (
+                            <li key={r.id} className="record-item">
+                              <div className="record-title">{r.title}</div>
+                              <div className="record-meta">
+                                By {r.vet.slice(0, 6)}...{r.vet.slice(-4)} ·{" "}
+                                {new Date(r.timestamp * 1000).toLocaleString()}
+                              </div>
+                              <div className="record-details">{r.details}</div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {role === "vet" && (
+            <div className="info-card subtle">
+              <h2>Vet quick info</h2>
               <p className="empty-text">
-                No pets loaded yet. Register a pet and click &quot;Load My
-                Pets&quot;.
+                Use the form on the left to add records by Pet ID. In a real system,
+                vets would also have a &quot;recent patients&quot; list here.
               </p>
-            )}
-
-            {myPets.length > 0 && (
-              <ul className="pet-list">
-                {myPets.map((pet) => (
-                  <li key={pet.id} className="pet-item">
-                    <div className="pet-name">
-                      {pet.name} <span className="pet-species">{pet.species}</span>
-                    </div>
-                    <div className="pet-meta">
-                      ID #{pet.id} · Born {pet.birthYear} ·{" "}
-                      {pet.lostMode ? "Status: LOST" : "Status: Normal"}
-                    </div>
-
-                    <button
-                      type="button"
-                      className="lost-toggle-btn"
-                      onClick={() => handleToggleLostMode(pet.id, pet.lostMode)}
-                    >
-                      {pet.lostMode ? "Mark as Found" : "Mark as Lost"}
-                    </button>
-
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      style={{ marginTop: 6 }}
-                      onClick={() => loadRecordsForPet(pet.id)}
-                    >
-                      View Medical Records
-                    </button>
-
-                    {recordsByPet[pet.id] && recordsByPet[pet.id].length > 0 && (
-                      <ul className="record-list">
-                        {recordsByPet[pet.id].map((r) => (
-                          <li key={r.id} className="record-item">
-                            <div className="record-title">{r.title}</div>
-                            <div className="record-meta">
-                              By {r.vet.slice(0, 6)}...{r.vet.slice(-4)} ·{" "}
-                              {new Date(r.timestamp * 1000).toLocaleString()}
-                            </div>
-                            <div className="record-details">{r.details}</div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+            </div>
+          )}
         </section>
       </main>
 
