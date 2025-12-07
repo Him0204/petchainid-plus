@@ -1,5 +1,7 @@
 // src/components/OwnerDashboard.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { Html5Qrcode } from "html5-qrcode";
 
 function OwnerDashboard({
   account,
@@ -22,6 +24,11 @@ function OwnerDashboard({
   const [lostSearchError, setLostSearchError] = useState("");
 
   const [coOwnerAddressInput, setCoOwnerAddressInput] = useState({});
+  
+  // QR Code states
+  const [showQRCode, setShowQRCode] = useState({});
+  const [isScanning, setIsScanning] = useState(false);
+  const html5QrCodeRef = useRef(null);
 
   const formatAddress = (addr) =>
     addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
@@ -194,15 +201,58 @@ function OwnerDashboard({
     }
   };
 
-  // ----- Lost Pet Finder -----
+  // ----- QR Code Functions -----
 
-  const handleLostPetSearch = async (e) => {
-    e.preventDefault();
+  const startQRScanner = async () => {
+    try {
+      setIsScanning(true);
+      setLostSearchError("");
+      
+      const html5QrCode = new Html5Qrcode("qr-reader");
+      html5QrCodeRef.current = html5QrCode;
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        },
+        (decodedText) => {
+          // Successfully scanned
+          console.log("QR Code scanned:", decodedText);
+          setLostSearchId(decodedText);
+          stopQRScanner();
+          // Auto-submit the search
+          handleLostPetSearchById(decodedText);
+        },
+        (errorMessage) => {
+          // Scanning errors (ignore these as they happen frequently)
+        }
+      );
+    } catch (err) {
+      console.error("Failed to start QR scanner:", err);
+      setLostSearchError("Failed to start camera. Please check permissions.");
+      setIsScanning(false);
+    }
+  };
+
+  const stopQRScanner = () => {
+    if (html5QrCodeRef.current) {
+      html5QrCodeRef.current.stop().then(() => {
+        setIsScanning(false);
+      }).catch((err) => {
+        console.error("Failed to stop scanner:", err);
+        setIsScanning(false);
+      });
+    }
+  };
+
+  const handleLostPetSearchById = async (petId) => {
     if (!petContract) {
       setStatusMessage("Connect wallet first.");
       return;
     }
-    if (!lostSearchId) {
+    if (!petId) {
       setLostSearchError("Please enter a Pet ID.");
       setLostSearchResult(null);
       return;
@@ -214,7 +264,7 @@ function OwnerDashboard({
       setStatusMessage("Looking up pet on-chain...");
 
       const pet = await petContract.methods
-        .getPet(Number(lostSearchId))
+        .getPet(Number(petId))
         .call();
 
       const result = {
@@ -243,6 +293,20 @@ function OwnerDashboard({
       setLostSearchResult(null);
     }
   };
+
+  const handleLostPetSearch = async (e) => {
+    e.preventDefault();
+    await handleLostPetSearchById(lostSearchId);
+  };
+
+  // Cleanup scanner on unmount
+  useEffect(() => {
+    return () => {
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current.stop().catch(() => {});
+      }
+    };
+  }, []);
 
   // ----- Render -----
 
@@ -279,24 +343,49 @@ function OwnerDashboard({
           <div className="lost-finder-card">
             <h2>Lost Pet Finder</h2>
             <p className="lost-finder-text">
-              Enter a Pet ID to see if it&apos;s marked as LOST and contact the
-              owner.
+              Enter a Pet ID or scan a QR code to see if it&apos;s marked as LOST and contact the owner.
             </p>
 
-            <form className="lost-finder-form" onSubmit={handleLostPetSearch}>
-              <div className="form-row">
-                <label>🔢 Pet ID</label>
-                <input
-                  type="number"
-                  value={lostSearchId}
-                  onChange={(e) => setLostSearchId(e.target.value)}
-                  placeholder="Enter Pet ID (e.g. 1, 2, 3...)"
-                />
+            {!isScanning ? (
+              <>
+                <form className="lost-finder-form" onSubmit={handleLostPetSearch}>
+                  <div className="form-row">
+                    <label>🔢 Pet ID</label>
+                    <input
+                      type="number"
+                      value={lostSearchId}
+                      onChange={(e) => setLostSearchId(e.target.value)}
+                      placeholder="Enter Pet ID (e.g. 1, 2, 3...)"
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="primary-btn" type="submit" style={{ flex: 1 }}>
+                      🔍 Search Pet
+                    </button>
+                    <button 
+                      className="secondary-btn" 
+                      type="button"
+                      onClick={startQRScanner}
+                      style={{ flex: 1 }}
+                    >
+                      📷 Scan QR Code
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <div style={{ marginTop: '12px' }}>
+                <div id="qr-reader" style={{ width: '100%', borderRadius: '12px', overflow: 'hidden' }}></div>
+                <button 
+                  className="secondary-btn" 
+                  type="button"
+                  onClick={stopQRScanner}
+                  style={{ width: '100%', marginTop: '12px' }}
+                >
+                  ❌ Stop Scanning
+                </button>
               </div>
-              <button className="primary-btn" type="submit" style={{ width: '100%' }}>
-                🔍 Search Pet
-              </button>
-            </form>
+            )}
 
             {lostSearchError && (
               <p className="lost-error-text">{lostSearchError}</p>
@@ -476,14 +565,50 @@ function OwnerDashboard({
                     </button>
                   </div>
 
-                  <button
-                    type="button"
-                    className="ghost-btn"
-                    style={{ marginTop: 10, width: '100%' }}
-                    onClick={() => loadRecordsForPet(pet.id)}
-                  >
-                    📋 <span>View Medical Records</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      className="ghost-btn"
+                      style={{ flex: 1 }}
+                      onClick={() => loadRecordsForPet(pet.id)}
+                    >
+                      📋 <span>View Records</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn"
+                      style={{ flex: 1 }}
+                      onClick={() => setShowQRCode(prev => ({ ...prev, [pet.id]: !prev[pet.id] }))}
+                    >
+                      {showQRCode[pet.id] ? '🔼' : '📱'} <span>{showQRCode[pet.id] ? 'Hide' : 'Show'} QR</span>
+                    </button>
+                  </div>
+
+                  {showQRCode[pet.id] && (
+                    <div style={{ 
+                      marginTop: '12px', 
+                      padding: '16px', 
+                      background: '#ffffff',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '10px',
+                      border: '2px solid var(--accent-soft-hover)'
+                    }}>
+                      <QRCodeSVG 
+                        value={pet.id.toString()} 
+                        size={180}
+                        level="H"
+                        includeMargin={true}
+                      />
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                        Pet ID: <strong>#{pet.id}</strong>
+                        <br />
+                        <span style={{ fontSize: '0.75rem' }}>Scan this QR code to quickly find this pet</span>
+                      </div>
+                    </div>
+                  )}
 
                   {recordsByPet[pet.id] &&
                     recordsByPet[pet.id].length > 0 && (

@@ -709,6 +709,39 @@ body {
   margin-top: 12px;
 }
 
+/* QR Code Scanner */
+#qr-reader {
+  border: 2px solid var(--accent);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+#qr-reader video {
+  border-radius: 10px;
+}
+
+#qr-reader__dashboard {
+  display: none !important;
+}
+
+#qr-reader__scan_region {
+  border-radius: 10px !important;
+}
+
+.qr-code-display {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 900px) {
