@@ -241,8 +241,8 @@ function OwnerDashboard({
         },
         (decodedText) => {
           setLostSearchId(decodedText);
-          stopScanning();
-          handleLostPetSearch(new Event("submit"));
+          stopQRScanner();
+          handleLostPetSearchById(decodedText);
         },
         (errorMessage) => {
           // Ignore scanning errors (normal when no QR detected)
@@ -386,7 +386,7 @@ function OwnerDashboard({
                     <button 
                       className="secondary-btn" 
                       type="button"
-                      onClick={startQRScanner}
+                      onClick={startScanning}
                       style={{ flex: 1 }}
                     >
                       📷 Scan QR Code
