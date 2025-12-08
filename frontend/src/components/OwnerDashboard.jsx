@@ -299,41 +299,21 @@ function OwnerDashboard({
       setLostSearchResult(null);
       setStatusMessage("Looking up pet on-chain...");
 
-      // Allow searching without wallet - create read-only Web3 instance
+      let pet;
+      
+      // Allow searching without wallet - use read-only provider
       if (!petContract) {
-        const provider = window.ethereum || 'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161';
-        const web3Instance = new Web3(provider);
+        // Use public Sepolia RPC endpoint
+        const rpcUrl = 'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161';
+        const web3Instance = new Web3(rpcUrl);
         const tempContract = new web3Instance.eth.Contract(
           PET_REGISTRY_ABI,
           PET_REGISTRY_ADDRESS
         );
-        const pet = await tempContract.methods.getPet(Number(petId)).call();
-        
-        const result = {
-          id: pet[0],
-          name: pet[1],
-          species: pet[2],
-          breed: pet[3],
-          birthYear: pet[4],
-          owner: pet[5],
-          lostMode: pet[6],
-        };
-
-        if (!result.lostMode) {
-          setLostSearchError(
-            "This pet is not marked as LOST (Lost Pet Mode not enabled)."
-          );
-          setLostSearchResult(null);
-        } else {
-          setLostSearchResult(result);
-        }
-        setStatusMessage("");
-        return;
+        pet = await tempContract.methods.getPet(Number(petId)).call();
+      } else {
+        pet = await petContract.methods.getPet(Number(petId)).call();
       }
-
-      const pet = await petContract.methods
-        .getPet(Number(petId))
-        .call();
 
       const result = {
         id: pet[0],
@@ -357,8 +337,16 @@ function OwnerDashboard({
       setStatusMessage("");
     } catch (err) {
       console.error("Lost pet search error:", err);
-      setLostSearchError("No pet found with that ID or call failed.");
+      const errorMsg = err?.message || "";
+      if (errorMsg.includes("Returned values aren't valid") || errorMsg.includes("invalid BigNumber")) {
+        setLostSearchError(`Pet ID #${petId} does not exist in the registry.`);
+      } else if (errorMsg.includes("network")) {
+        setLostSearchError("Network error. Please check your internet connection.");
+      } else {
+        setLostSearchError(`No pet found with ID #${petId} or search failed.`);
+      }
       setLostSearchResult(null);
+      setStatusMessage("");
     }
   };
 
