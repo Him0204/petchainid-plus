@@ -173,17 +173,25 @@ function OwnerDashboard({
   // ----- Medical records (view) -----
 
   const loadRecordsForPet = async (petId) => {
-    if (!medicalContract) {
-      setStatusMessage("Medical contract not ready.");
+    if (!medicalContract || !account) {
+      setStatusMessage("Connect wallet first to view medical records.");
       return;
     }
     try {
+      setStatusMessage(`Loading medical records for Pet #${petId}...`);
+      
       const ids = await medicalContract.methods
         .getRecordIdsForPet(petId)
-        .call();
+        .call({ from: account });
+
+      if (ids.length === 0) {
+        setRecordsByPet((prev) => ({ ...prev, [petId]: [] }));
+        setStatusMessage(`No medical records found for Pet #${petId}.`);
+        return;
+      }
 
       const recPromises = ids.map(async (id) => {
-        const r = await medicalContract.methods.getRecord(id).call();
+        const r = await medicalContract.methods.getRecord(id).call({ from: account });
         // [id, petId, vet, timestamp, title, details]
         return {
           id: r[0],
@@ -197,9 +205,18 @@ function OwnerDashboard({
 
       const recs = await Promise.all(recPromises);
       setRecordsByPet((prev) => ({ ...prev, [petId]: recs }));
+      setStatusMessage(`Loaded ${recs.length} medical record(s) for Pet #${petId}.`);
     } catch (err) {
       console.error("loadRecordsForPet error:", err);
-      setStatusMessage("Failed to load medical records.");
+      const errorMsg = err?.message || "Unknown error";
+      if (errorMsg.includes("Not authorized")) {
+        setStatusMessage(`Not authorized to view records for Pet #${petId}. You must be the pet owner.`);
+      } else if (errorMsg.includes("execution reverted")) {
+        setStatusMessage(`Failed to load medical records: ${errorMsg.split('execution reverted:')[1] || 'Transaction reverted'}`);
+      } else {
+        setStatusMessage(`Failed to load medical records: ${errorMsg}`);
+      }
+      setRecordsByPet((prev) => ({ ...prev, [petId]: [] }));
     }
   };
 
@@ -661,25 +678,40 @@ function OwnerDashboard({
                     </div>
                   )}
 
-                  {recordsByPet[pet.id] &&
-                    recordsByPet[pet.id].length > 0 && (
-                      <ul className="record-list">
-                        {recordsByPet[pet.id].map((r) => (
-                          <li key={r.id} className="record-item">
-                            <div className="record-title">📄 {r.title}</div>
-                            <div className="record-meta">
-                              🩺 By {formatAddress(r.vet)} · 📅{" "}
-                              {new Date(
-                                r.timestamp * 1000
-                              ).toLocaleDateString()}
-                            </div>
-                            <div className="record-details">
-                              💬 {r.details}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                  {recordsByPet[pet.id] !== undefined && (
+                    <>
+                      {recordsByPet[pet.id].length === 0 ? (
+                        <div style={{ 
+                          marginTop: '12px', 
+                          padding: '12px', 
+                          background: 'var(--bg-secondary)',
+                          borderRadius: '8px',
+                          textAlign: 'center',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          📋 No medical records yet for this pet.
+                        </div>
+                      ) : (
+                        <ul className="record-list">
+                          {recordsByPet[pet.id].map((r) => (
+                            <li key={r.id} className="record-item">
+                              <div className="record-title">📄 {r.title}</div>
+                              <div className="record-meta">
+                                🩺 By {formatAddress(r.vet)} · 📅{" "}
+                                {new Date(
+                                  r.timestamp * 1000
+                                ).toLocaleDateString()}
+                              </div>
+                              <div className="record-details">
+                                💬 {r.details}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
