@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
+
 pragma solidity ^0.8.20;
 
 contract PetRegistry {
@@ -99,7 +100,6 @@ contract PetRegistry {
         require(ownerToRemove != address(0), "Invalid address");
         require(ownerToRemove != p.primaryOwner, "Cannot remove primary");
 
-        // remove from coOwners
         uint256 len = p.coOwners.length;
         bool found = false;
         for (uint256 i = 0; i < len; i++) {
@@ -112,7 +112,6 @@ contract PetRegistry {
         }
         require(found, "Not a co-owner");
 
-        // remove from _ownerPets[ownerToRemove]
         uint256[] storage list = _ownerPets[ownerToRemove];
         uint256 l2 = list.length;
         for (uint256 j = 0; j < l2; j++) {
@@ -127,8 +126,6 @@ contract PetRegistry {
     }
 
     // ---------- views ----------
-
-    /// Backwards-compatible: single owner return (primaryOwner)
     function getPet(
         uint256 petId
     )
@@ -157,7 +154,6 @@ contract PetRegistry {
         );
     }
 
-    /// New: expose all owners for UI / access decisions
     function getPetOwners(
         uint256 petId
     ) external view returns (address primaryOwner, address[] memory coOwners) {
