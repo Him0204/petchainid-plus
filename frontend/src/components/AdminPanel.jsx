@@ -3,7 +3,7 @@ import React from "react";
 
 function AdminPanel({ isAdmin, medicalContract, account, setStatusMessage }) {
   const [vetAddress, setVetAddress] = React.useState("");
-  const [mode, setMode] = React.useState("approve"); // "approve" | "revoke"
+  const [mode, setMode] = React.useState("approve"); 
 
   console.log("AdminPanel received isAdmin:", isAdmin);
   console.log("AdminPanel received account:", account);

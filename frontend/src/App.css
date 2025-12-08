@@ -115,7 +115,6 @@ body {
   white-space: nowrap;
 }
 
-/* solid primary */
 .primary-btn {
   background: var(--accent);
   color: #ffffff;
@@ -140,7 +139,6 @@ body {
   cursor: not-allowed;
 }
 
-/* outline secondary */
 .secondary-btn {
   background: var(--bg-elevated);
   color: var(--text-secondary);
@@ -159,7 +157,6 @@ body {
   cursor: not-allowed;
 }
 
-/* ghost / subtle */
 .ghost-btn {
   background: var(--accent-soft);
   color: var(--text-secondary);
@@ -178,7 +175,6 @@ body {
   transform: translateY(-1px);
 }
 
-/* wallet button */
 .wallet-button {
   background: var(--bg-elevated);
   border-color: var(--border-subtle);
@@ -192,14 +188,12 @@ body {
   transform: translateY(-1px);
 }
 
-/* active role highlight */
 .active-role {
   box-shadow: 0 0 0 3px var(--accent-soft);
   border-color: var(--accent);
   background: var(--accent-soft);
 }
 
-/* small dot in wallet button */
 .wallet-dot {
   width: 8px;
   height: 8px;
@@ -514,8 +508,6 @@ body {
   font-size: 0.75rem;
 }
 
-/* lost toggle + co-owner row */
-
 .lost-toggle-btn {
   margin-top: 10px;
   border-radius: 8px;
@@ -549,8 +541,6 @@ body {
 .coowner-input {
   flex: 1;
 }
-
-/* medical records list */
 
 .record-list {
   list-style: none;
@@ -657,7 +647,6 @@ body {
   box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
 }
 
-/* Admin tab special styling */
 .role-switch .secondary-btn:has(span:first-child):nth-child(3),
 .role-switch button:last-child {
   background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
@@ -709,7 +698,6 @@ body {
   margin-top: 12px;
 }
 
-/* QR Code Scanner */
 #qr-reader {
   border: 2px solid var(--accent);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);

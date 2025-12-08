@@ -13,10 +13,7 @@ import OwnerDashboard from "./components/OwnerDashboard";
 import VetDashboard from "./components/VetDashboard";
 import AdminPanel from "./components/AdminPanel";
 
-// Network configuration
-// For Sepolia testnet: 0xaa36a7 (11155111 in decimal)
-// For local Hardhat: 0x7a69 (31337 in decimal)
-const NETWORK_CHAIN_ID = "0xaa36a7"; // Change to "0xaa36a7" for Sepolia
+const NETWORK_CHAIN_ID = "0xaa36a7";
 
 function App() {
   const [account, setAccount] = useState(null);
@@ -47,7 +44,6 @@ function App() {
       });
       console.log("Connected chainId:", chainId);
 
-      // Check if on correct network
       if (chainId !== NETWORK_CHAIN_ID) {
         setStatusMessage(
           `Wrong network. Please switch MetaMask to the correct network (chainId ${NETWORK_CHAIN_ID}).`
@@ -69,7 +65,6 @@ function App() {
       );
       setMedicalContract(medical);
 
-      // Check vet status
       let vetApproved = false;
       try {
         vetApproved = await medical.methods.isVet(selected).call();
@@ -78,7 +73,6 @@ function App() {
       }
       setIsVetApproved(vetApproved);
 
-      // Check admin status
       let adminAddr = null;
       try {
         adminAddr = await medical.methods.admin().call();

@@ -39,7 +39,6 @@ function VetDashboard({ account, medicalContract, isVetApproved, setStatusMessag
       setRecordTitle("");
       setRecordDetails("");
       
-      // If viewing records for the same pet, refresh them
       if (viewPetId === vetPetId) {
         await handleViewRecords(vetPetId);
       }

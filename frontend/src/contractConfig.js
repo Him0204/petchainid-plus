@@ -1,6 +1,5 @@
 // src/contractConfig.js
 
-// 1. Copy the ABI array from backend/artifacts/.../PetRegistry.json
 export const PET_REGISTRY_ABI = [
 	{
 		"inputs": [
@@ -290,7 +289,6 @@ export const PET_REGISTRY_ABI = [
 	}
 ];
 
-// 2. Paste the address printed by `node scripts/deploy.js`
 export const PET_REGISTRY_ADDRESS = "0x7d7e917b3D5a44f4CEdd6E2969208D43274A993f";
 
 export const MEDICAL_RECORDS_ABI = [

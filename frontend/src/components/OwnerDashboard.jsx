@@ -27,7 +27,6 @@ function OwnerDashboard({
 
   const [coOwnerAddressInput, setCoOwnerAddressInput] = useState({});
   
-  // QR Code states
   const [showQRCode, setShowQRCode] = useState({});
   const [isScanning, setIsScanning] = useState(false);
   const html5QrCodeRef = useRef(null);
@@ -227,7 +226,6 @@ function OwnerDashboard({
       setIsScanning(true);
       setLostSearchError("");
 
-      // Check if HTTPS or localhost
       const isSecureContext = window.isSecureContext;
       if (!isSecureContext) {
         setLostSearchError(
@@ -237,10 +235,9 @@ function OwnerDashboard({
         return;
       }
 
-      // Check camera permissions
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(track => track.stop()); // Stop test stream
+        stream.getTracks().forEach(track => track.stop()); 
       } catch (permError) {
         setLostSearchError(
           "Camera permission denied. Please enable camera access in your browser settings."
@@ -264,7 +261,6 @@ function OwnerDashboard({
           handleLostPetSearchById(decodedText);
         },
         (errorMessage) => {
-          // Ignore scanning errors (normal when no QR detected)
         }
       );
     } catch (err) {
@@ -301,9 +297,7 @@ function OwnerDashboard({
 
       let pet;
       
-      // Allow searching without wallet - use read-only provider
       if (!petContract) {
-        // Use public Sepolia RPC endpoint
         const rpcUrl = 'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161';
         const web3Instance = new Web3(rpcUrl);
         const tempContract = new web3Instance.eth.Contract(
@@ -355,7 +349,6 @@ function OwnerDashboard({
     await handleLostPetSearchById(lostSearchId);
   };
 
-  // Cleanup scanner on unmount
   useEffect(() => {
     return () => {
       if (html5QrCodeRef.current) {
