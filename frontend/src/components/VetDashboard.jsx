@@ -5,6 +5,13 @@ function VetDashboard({ account, medicalContract, isVetApproved, setStatusMessag
   const [vetPetId, setVetPetId] = useState("");
   const [recordTitle, setRecordTitle] = useState("");
   const [recordDetails, setRecordDetails] = useState("");
+  
+  // View medical records
+  const [viewPetId, setViewPetId] = useState("");
+  const [viewedRecords, setViewedRecords] = useState(null);
+
+  const formatAddress = (addr) =>
+    addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
 
   const handleAddMedicalRecord = async (e) => {
     e.preventDefault();
@@ -31,6 +38,11 @@ function VetDashboard({ account, medicalContract, isVetApproved, setStatusMessag
       setVetPetId("");
       setRecordTitle("");
       setRecordDetails("");
+      
+      // If viewing records for the same pet, refresh them
+      if (viewPetId === vetPetId) {
+        await handleViewRecords(vetPetId);
+      }
     } catch (err) {
       console.error("addRecord error:", err);
       setStatusMessage(
@@ -39,6 +51,69 @@ function VetDashboard({ account, medicalContract, isVetApproved, setStatusMessag
         }`
       );
     }
+  };
+
+  const handleViewRecords = async (petId) => {
+    const idToView = petId || viewPetId;
+    
+    if (!medicalContract || !account) {
+      setStatusMessage("Connect wallet first.");
+      return;
+    }
+    if (!isVetApproved) {
+      setStatusMessage("You must be an approved vet to view records.");
+      return;
+    }
+    if (!idToView) {
+      setStatusMessage("Enter a Pet ID to view records.");
+      return;
+    }
+
+    try {
+      setStatusMessage(`Loading medical records for Pet #${idToView}...`);
+      
+      const ids = await medicalContract.methods
+        .getRecordIdsForPet(Number(idToView))
+        .call({ from: account });
+
+      if (ids.length === 0) {
+        setViewedRecords({ petId: idToView, records: [] });
+        setStatusMessage(`No medical records found for Pet #${idToView}.`);
+        return;
+      }
+
+      const recPromises = ids.map(async (id) => {
+        const r = await medicalContract.methods.getRecord(id).call({ from: account });
+        return {
+          id: r[0],
+          petId: r[1],
+          vet: r[2],
+          timestamp: Number(r[3]),
+          title: r[4],
+          details: r[5],
+        };
+      });
+
+      const recs = await Promise.all(recPromises);
+      setViewedRecords({ petId: idToView, records: recs });
+      setStatusMessage(`Loaded ${recs.length} medical record(s) for Pet #${idToView}.`);
+    } catch (err) {
+      console.error("viewRecords error:", err);
+      const errorMsg = err?.message || "Unknown error";
+      if (errorMsg.includes("Not authorized")) {
+        setStatusMessage(`Not authorized to view records for Pet #${idToView}.`);
+      } else if (errorMsg.includes("execution reverted")) {
+        setStatusMessage(`Failed to load records: ${errorMsg.split('execution reverted:')[1] || 'Transaction reverted'}`);
+      } else {
+        setStatusMessage(`Failed to load records: ${errorMsg}`);
+      }
+      setViewedRecords(null);
+    }
+  };
+
+  const handleViewRecordsSubmit = async (e) => {
+    e.preventDefault();
+    await handleViewRecords();
   };
 
   return (
@@ -117,6 +192,66 @@ function VetDashboard({ account, medicalContract, isVetApproved, setStatusMessag
             read these with the owner&apos;s consent for safer, coordinated care.
           </p>
         </div>
+
+        {isVetApproved && (
+          <div className="info-card subtle">
+            <div className="section-header" style={{ borderColor: 'var(--accent-soft-hover)' }}>
+              <span className="section-icon">📋</span>
+              <h2>View Patient Records</h2>
+            </div>
+            <form onSubmit={handleViewRecordsSubmit} style={{ marginTop: '12px' }}>
+              <div className="form-row">
+                <label>🔢 Pet ID</label>
+                <input
+                  type="number"
+                  value={viewPetId}
+                  onChange={(e) => setViewPetId(e.target.value)}
+                  placeholder="Enter Pet ID to view records"
+                  min="1"
+                  required
+                />
+              </div>
+              <button className="primary-btn" type="submit" style={{ width: '100%' }}>
+                🔍 View Medical History
+              </button>
+            </form>
+
+            {viewedRecords && (
+              <div style={{ marginTop: '16px' }}>
+                <h3 style={{ fontSize: '0.95rem', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                  Pet #{viewedRecords.petId} - Medical History
+                </h3>
+                {viewedRecords.records.length === 0 ? (
+                  <div style={{ 
+                    padding: '12px', 
+                    background: 'var(--bg-secondary)',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    fontSize: '0.9rem',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    📋 No medical records yet for this pet.
+                  </div>
+                ) : (
+                  <ul className="record-list">
+                    {viewedRecords.records.map((r) => (
+                      <li key={r.id} className="record-item">
+                        <div className="record-title">📄 {r.title}</div>
+                        <div className="record-meta">
+                          🩺 By {formatAddress(r.vet)} · 📅{" "}
+                          {new Date(r.timestamp * 1000).toLocaleDateString()}
+                        </div>
+                        <div className="record-details">
+                          💬 {r.details}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="info-card subtle">
           <div className="section-header" style={{ borderColor: 'var(--accent-soft-hover)' }}>
@@ -127,6 +262,7 @@ function VetDashboard({ account, medicalContract, isVetApproved, setStatusMessag
             <li>Get approved by the admin first</li>
             <li>Enter the Pet ID and record details</li>
             <li>Submit to blockchain (immutable)</li>
+            <li>View complete medical history for any pet</li>
             <li>Owners can view all records for their pets</li>
           </ul>
         </div>
