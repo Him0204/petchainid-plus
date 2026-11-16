@@ -5,9 +5,6 @@ function AdminPanel({ isAdmin, medicalContract, account, setStatusMessage }) {
   const [vetAddress, setVetAddress] = React.useState("");
   const [mode, setMode] = React.useState("approve"); 
 
-  console.log("AdminPanel received isAdmin:", isAdmin);
-  console.log("AdminPanel received account:", account);
-
   const handleSetVet = async (e) => {
     e.preventDefault();
     if (!medicalContract || !account) {
@@ -50,11 +47,8 @@ function AdminPanel({ isAdmin, medicalContract, account, setStatusMessage }) {
   };
 
   if (!isAdmin) {
-    console.log("AdminPanel: Not rendering because isAdmin is false");
     return null;
   }
-  
-  console.log("AdminPanel: Rendering admin panel");
 
   return (
     <div className="info-card" style={{ background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', border: '2px solid #fbbf24' }}>

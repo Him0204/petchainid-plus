@@ -42,8 +42,6 @@ function App() {
       const chainId = await window.ethereum.request({
         method: "eth_chainId",
       });
-      console.log("Connected chainId:", chainId);
-
       if (chainId !== NETWORK_CHAIN_ID) {
         setStatusMessage(
           `Wrong network. Please switch MetaMask to the correct network (chainId ${NETWORK_CHAIN_ID}).`
@@ -76,17 +74,12 @@ function App() {
       let adminAddr = null;
       try {
         adminAddr = await medical.methods.admin().call();
-        console.log("Admin address from contract:", adminAddr);
-        console.log("Current account:", selected);
-        console.log("Is admin?", adminAddr && adminAddr.toLowerCase() === selected.toLowerCase());
       } catch (e) {
         console.error("admin check error:", e);
       }
       
       const isAdminCheck = adminAddr && adminAddr.toLowerCase() === selected.toLowerCase();
       setIsAdmin(isAdminCheck);
-
-      console.log("Setting isAdmin to:", isAdminCheck);
 
       setStatusMessage(
         `Wallet and contracts connected successfully. ${

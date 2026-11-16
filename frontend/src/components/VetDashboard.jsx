@@ -188,7 +188,7 @@ function VetDashboard({ account, medicalContract, isVetApproved, setStatusMessag
           </div>
           <p>
             Log treatments and diagnoses as immutable records. Other clinics can
-            read these with the owner&apos;s consent for safer, coordinated care.
+            read these when authorized by the smart contract for safer, coordinated care.
           </p>
         </div>
 

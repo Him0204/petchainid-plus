@@ -111,8 +111,8 @@ Medical records management contract with role-based access:
 - Block Explorer: https://sepolia.etherscan.io
 - Faucet: https://sepoliafaucet.com
 
-**Current Deployment (Example)**
-- PetRegistry: 0x5b8C9EF92a7a72ACa4dEBe2e882C010f87Bee613
+**Current Deployment**
+- PetRegistry: 0x7d7e917b3D5a44f4CEdd6E2969208D43274A993f
 - MedicalRecords: 0xE551657117C10Ce38f85b0101714499Fa14e5Df1
 - Network: Sepolia
 
